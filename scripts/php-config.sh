@@ -54,3 +54,9 @@ do
 	
 	echo "env[${e/=/] = \"}\"" >> /etc/php5/fpm/pool.d/www.conf
 done <<< "$(env)"
+
+if [ -f "/project/php-start" ]
+then
+	sudo chmod +x /project/php-start
+	/project/php-start
+fi
