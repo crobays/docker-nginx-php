@@ -39,6 +39,7 @@ ENV PUBLIC_PATH /project/public
 ENV NGINX_CONF nginx-virtual.conf
 
 VOLUME  ["/project"]
+WORKDIR /project
 
 # HTTP ports
 EXPOSE 80 443
