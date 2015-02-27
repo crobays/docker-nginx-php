@@ -1,28 +1,62 @@
 #!/bin/bash
+
+function find_replace_add_string_to_file() {
+    find="$1"
+    replace="$2"
+    replace_escaped="${2//\//\\/}"
+    file="$3"
+    label="$4"
+    if grep -q ";$find" "$file" # The exit status is 0 (true) if the name was found, 1 (false) if not
+    then
+        action="Uncommented"
+        sed -i "s/;$find/$replace_escaped/" "$file"
+    elif grep -q "#$find" "$file" # The exit status is 0 (true) if the name was found, 1 (false) if not
+    then
+        action="Uncommented"
+        sed -i "s/#$find/$replace_escaped/" "$file"
+    elif grep -q "$replace" "$file"
+    then
+        action="Already set"
+    elif grep -q "$find" "$file"
+    then
+        action="Overwritten"
+        sed -i "s/$find/$replace_escaped/" "$file"
+    else
+        action="Added"
+        echo -e "\n$replace\n" >> "$file"
+    fi
+    echo " ==> Setting $label ($action) [$replace in $file]"
+}
+
 php5enmod mcrypt
+
 if [ "$TIMEZONE" != "" ]
 then
-	timezone="${TIMEZONE//\//\\\/}"
-	echo "Setting timezone: $TIMEZONE"
-	sed -i "s/;date.timezone =.*/date.timezone = $timezone/" /etc/php5/fpm/php.ini
-	sed -i "s/;date.timezone =.*/date.timezone = $timezone/" /etc/php5/cli/php.ini
+	find_replace_add_string_to_file "date.timezone =.*" "date.timezone = $TIMEZONE" /etc/php5/fpm/php.ini "PHP timezone"
+else
+	echo " ==> Timezone not set (not given TIMEZONE)"
 fi
 
-# Turn on daemonization
-sed -i "s/;daemonize = yes/daemonize = no/" /etc/php5/fpm/php-fpm.conf
+find_replace_add_string_to_file "daemonize =.*" "daemonize = no" /etc/php5/fpm/php-fpm.conf "PHP daemon off"
+find_replace_add_string_to_file "daemonize =.*" "daemonize = no" /etc/php5/cli/php.ini "PHP daemon off"
 
-# Turn on display errors
-sed -i "s/display_errors = Off/display_errors = On/" /etc/php5/fpm/php.ini
-sed -i "s/display_errors = Off/display_errors = On/" /etc/php5/cli/php.ini
 if [ "${ENVIRONMENT:0:4}" != "prod" ]
 then
-	sed -i "s/display_startup_errors = Off/display_startup_errors = On/" /etc/php5/fpm/php.ini
-	sed -i "s/display_startup_errors = Off/display_startup_errors = On/" /etc/php5/cli/php.ini
+	find_replace_add_string_to_file "display_errors =.*" "display_errors = On" /etc/php5/fpm/php.ini "PHP display errors on"
+	find_replace_add_string_to_file "display_startup_errors =.*" "display_startup_errors = On" /etc/php5/fpm/php.ini "PHP display startup errors on"
+	find_replace_add_string_to_file "display_startup_errors =.*" "display_startup_errors = On" /etc/php5/cli/php.ini "PHP display startup errors on"
 fi
 
+find_replace_add_string_to_file "enable_dl = .*" "enable_dl = On" /etc/php5/fpm/php.ini "PHP enable dl on"
+find_replace_add_string_to_file "enable_dl = .*" "enable_dl = On" /etc/php5/cli/php.ini "PHP enable dl on"
+
 # Disable default mimetype
-sed -i "s/default_mimetype =.*/default_mimetype = \"\"/" /etc/php5/fpm/php.ini
-sed -i "s/default_mimetype =.*/default_mimetype = \"\"/" /etc/php5/cli/php.ini
+# find_replace_add_string_to_file "default_mimetype =.*" "default_mimetype = \"\"" /etc/php5/fpm/php.ini "PHP default mimetype none"
+# find_replace_add_string_to_file "default_mimetype =.*/default_mimetype = \"\"" /etc/php5/cli/php.ini "PHP "
+
+#find_replace_add_string_to_file ";listen.owner =.*" "listen.owner = nginx" /etc/php5/fpm/pool.d/www.conf "PHP owner to nginx"
+#find_replace_add_string_to_file ";listen.group =.*" "listen.group = nginx" /etc/php5/fpm/pool.d/www.conf "PHP group to nginx"
+#find_replace_add_string_to_file ";listen.mode =.*" "listen.mode = 0660" /etc/php5/fpm/pool.d/www.conf "PHP owner to 0660"
 
 if [ -f "/project/php-fpm.ini" ]
 then
@@ -36,7 +70,7 @@ fi
 
 if [ -f "/project/php-fpm.conf" ]
 then
-	ln -sf "/project/php-fpm.conf" /etc/php5/fpm/php-fpm.conf
+	ln -sf "/project/php-fpm.conf" /etc/php5/fpm/pool.d/php-fpm.conf
 fi
 
 if [ -f "/project/php-fpm-www.conf" ]
@@ -55,8 +89,4 @@ do
 	echo "env[${e/=/] = \"}\"" >> /etc/php5/fpm/pool.d/www.conf
 done <<< "$(env)"
 
-if [ -f "/project/php-start" ]
-then
-	sudo chmod +x /project/php-start
-	/project/php-start
-fi
+#chown nginx:nginx /var/run/php-fpm

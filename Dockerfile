@@ -32,6 +32,9 @@ RUN apt-get install -y \
 	php5-tidy \
 	supervisor
 
+ADD /scripts/install-ioncube.sh /tmp/install-ioncube.sh
+RUN chmod +x /tmp/install-ioncube.sh && /tmp/install-ioncube.sh
+
 # Exposed ENV
 ENV TIMEZONE Etc/UTC
 ENV ENVIRONMENT prod
@@ -44,6 +47,7 @@ WORKDIR /project
 # HTTP ports
 EXPOSE 80 443
 
+
 RUN echo '/sbin/my_init' > /root/.bash_history
 
 RUN mkdir /etc/service/nginx && echo "#!/bin/bash\nnginx" > /etc/service/nginx/run
@@ -52,6 +56,7 @@ RUN mkdir /etc/service/php && echo "#!/bin/bash\nphp5-fpm -c /etc/php5/fpm" > /e
 RUN echo "#!/bin/bash\necho \"\$TIMEZONE\" > /etc/timezone && dpkg-reconfigure -f noninteractive tzdata" > /etc/my_init.d/01-timezone.sh
 ADD /scripts/nginx-config.sh /etc/my_init.d/02-nginx-config.sh
 ADD /scripts/php-config.sh /etc/my_init.d/03-php-config.sh
+ADD /scripts/run-start.sh /etc/my_init.d/04-run-start.sh
 
 RUN chmod +x /etc/my_init.d/* && chmod +x /etc/service/*/run
 

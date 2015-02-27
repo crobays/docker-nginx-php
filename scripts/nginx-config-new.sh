@@ -1,30 +1,31 @@
 #!/bin/bash
 
 function find_replace_add_string_to_file() {
-	find="$1"
-	replace="${2//\//\\/}"
-	file="$3"
-	label="$4"
-	if grep -q ";$find" "$file" # The exit status is 0 (true) if the name was found, 1 (false) if not
-	then
-		action="Uncommented"
-		sed -i "s/;$find/$replace/" "$file"
-	elif grep -q "#$find" "$file" # The exit status is 0 (true) if the name was found, 1 (false) if not
-	then
-		action="Uncommented"
-		sed -i "s/#$find/$replace/" "$file"
-	elif grep -q "$replace" "$file"
-	then
-		action="Already set"
-	elif grep -q "$find" "$file"
-	then
-		action="Overwritten"
-		sed -i "s/$find/$replace/" "$file"
-	else
-		action="Added"
-		echo -e "\n$replace\n" >> "$file"
-	fi
-	echo " ==> Setting $label ($action) [$replace in $file]"
+    find="$1"
+    replace="$2"
+    replace_escaped="${2//\//\\/}"
+    file="$3"
+    label="$4"
+    if grep -q ";$find" "$file" # The exit status is 0 (true) if the name was found, 1 (false) if not
+    then
+        action="Uncommented"
+        sed -i "s/;$find/$replace_escaped/" "$file"
+    elif grep -q "#$find" "$file" # The exit status is 0 (true) if the name was found, 1 (false) if not
+    then
+        action="Uncommented"
+        sed -i "s/#$find/$replace_escaped/" "$file"
+    elif grep -q "$replace" "$file"
+    then
+        action="Already set"
+    elif grep -q "$find" "$file"
+    then
+        action="Overwritten"
+        sed -i "s/$find/$replace_escaped/" "$file"
+    else
+        action="Added"
+        echo -e "\n$replace\n" >> "$file"
+    fi
+    echo " ==> Setting $label ($action) [$replace in $file]"
 }
 
 find_replace_add_string_to_file "daemon .*" "daemon off;" /etc/nginx/nginx.conf "NGINX daemon off"
